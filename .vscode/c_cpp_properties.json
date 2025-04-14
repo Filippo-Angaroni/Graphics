@@ -1,0 +1,38 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${default}",
+                "/usr/include",
+                "/usr/include/c++/14.2.1/x86_64-pc-linux-gnu/**",
+                "${workspaceFolder}/imgui",
+                "${workspaceFolder}/backends",
+                "${workspaceFolder}/glad",
+                "${workspaceFolder}/headers",
+                "/usr/include/c++/14.2.1",
+                "/usr/include/unicode"
+            ],
+            "defines": [
+                "-std=c++11",
+                "-g",
+                "-Wall",
+                "-Wformat",
+                "-I",
+                "/usr/include/GLFW",
+                "-utypes"
+            ],
+            "browse": {
+                "path": [
+                    "/usr/include/**"
+                ]
+            },
+            "compilerPath": "/usr/bin/g++",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "linux-gcc-x64",
+            "configurationProvider": "ms-vscode.makefile-tools"
+        }
+    ],
+    "version": 4
+}

@@ -1,0 +1,49 @@
+EXE = graphics
+IMGUI_DIR = ../
+SOURCES = $(IMGUI_DIR)/src/main.cpp $(IMGUI_DIR)/src/shaders.cpp $(IMGUI_DIR)/src/shaderGenerator.cpp $(IMGUI_DIR)/src/shapes.cpp $(IMGUI_DIR)/src/VAEBO.cpp $(IMGUI_DIR)/src/canva.cpp $(IMGUI_DIR)/src/widgets.cpp
+SOURCES += $(IMGUI_DIR)/imgui/imgui.cpp $(IMGUI_DIR)/imgui/imgui_demo.cpp $(IMGUI_DIR)/imgui/imgui_draw.cpp $(IMGUI_DIR)/imgui/imgui_tables.cpp $(IMGUI_DIR)/imgui/imgui_widgets.cpp
+SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+SOURCES += $(IMGUI_DIR)/glad/glad.c
+OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
+UNAME_S := $(shell uname -s)
+LINUX_GL_LIBS = -lGL
+
+INCLUDE_DIR = -I$(IMGUI_DIR)/imgui -I$(IMGUI_DIR)/backends -I$(IMGUI_DIR)/glad -I$(IMGUI_DIR)/headers
+
+CXXFLAGS = -std=c++14 $(INCLUDE_DIR)
+CXXFLAGS += -g -Wall -Wformat
+LIBS = 
+
+
+ifeq ($(UNAME_S), Linux) #LINUX
+	ECHO_MESSAGE = "Linux"
+	LIBS += $(LINUX_GL_LIBS) `pkg-config --static --libs glfw3`
+
+	CXXFLAGS += `pkg-config --cflags glfw3`
+	CFLAGS = $(CXXFLAGS)
+endif
+
+
+%.o:$(IMGUI_DIR)/src/%.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+%.o:$(IMGUI_DIR)/imgui/%.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+%.o:$(IMGUI_DIR)/backends/%.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+%.o:$(IMGUI_DIR)/glad/%.c
+	gcc -std=c11 $(INCLUDE_DIR) -g -Wall -Wformat `pkg-config --cflags glfw3` -c -o $@ $<
+
+all: $(EXE)
+	@echo Build complete for $(ECHO_MESSAGE)
+
+$(EXE): $(OBJS)
+	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
+
+clean:
+	rm -f $(EXE) $(OBJS) imgui.ini	
+
+clean_tmp:
+	rm -f *.vert *.frag *.shp *.ini
