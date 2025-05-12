@@ -50,7 +50,7 @@ $(SRC): $(SRC_OBJS)
 	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
 
 clean:
-	find . ! -name Makefile ! -name glad.o ! -name imgui_demo.o ! -name imgui_draw.o ! -name imgui_impl_glfw.o ! -name imgui_impl_opengl3.o ! -name imgui_tables.o ! -name imgui_widgets.o ! -name imgui.o ! -name imgui.ini -delete
+	rm -f !(imgui.o)
 
 clean_all:
 	rm -f $(EXE) $(OBJS) imgui.ini	

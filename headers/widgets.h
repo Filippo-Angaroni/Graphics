@@ -19,13 +19,7 @@ enum class Tools {
     LINE
 };
 
-enum class ShapeState {
-    EMPTY           =       0x0,
-    CREATING,
-    MODIFYING,
 
-    CURRENT
-};
 
 enum class Actions {
     EMPTY,
@@ -36,6 +30,8 @@ extern Tools currentTool;
 extern ShapeState shapeState;
 extern Actions action;
 
+extern std::shared_ptr<Canva> currentCanva;
+
 class RenderWidget 
 {
     public:
@@ -45,12 +41,11 @@ class RenderWidget
         void Resize(ImVec2 size);
         void Delete();
         template <typename T>
-        void addShape(T shape, ShapeState shpState = ShapeState::EMPTY)
+        void addShape(T shape, ShapeState shpState = ShapeState::STATIC)
         {
-            currentShapes.push_back(std::make_unique<T>(std::move(shape)));
-            canva->addShape(std::make_unique<T>(std::move(shape)));
+            canva->addShape(shape);
             //std::cout << shape.getVertex(0) << std::endl;
-            std::cout << "Name: " << canva->shapes[0]->getName() << std::endl;
+            //std::cout << "Name: " << canva->shapes[0]->getName() << std::endl;
         }
         void registerEvents();
         void execEvents();
@@ -59,8 +54,7 @@ class RenderWidget
         std::string widgetName; 
         FBO* fbo;
         ImVec2 widgetSize;
-        std::unique_ptr<Canva> canva;
-        std::vector<std::unique_ptr<Shape>> currentShapes;
+        std::shared_ptr<Canva> canva;
 };
 
 class ToolWidget

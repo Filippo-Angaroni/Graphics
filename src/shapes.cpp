@@ -52,7 +52,23 @@ void SaveShape(ShapeStruct shapeStruct)
 
 Shape::Shape()
 {
+    state = ShapeState::STATIC;
+}
 
+void Shape::addVertices(GLfloat* addVertices, int addVerticesNum) 
+{
+    for (int i = 0; i < addVerticesNum; i++) {
+        vertices.push_back(addVertices[i]);
+    }
+    vertexNumber += addVerticesNum;
+}
+
+void Shape::addIndices(GLuint* addIndices, int addIndicesNum) 
+{
+    for (int i = 0; i < addIndicesNum; i++) {
+        indices.push_back(addIndices[i]);
+    }
+    indicesNumber += addIndicesNum;
 }
 
 // void Shape::Translate(glm::vec3 delta)
@@ -139,37 +155,31 @@ void Line::Delete()
 
 #pragma region Lines
 
-Lines::Lines(GLfloat* _vertices, GLsizeiptr _vertSize, GLuint* _indices, GLsizeiptr _indSize, ShaderFiles shaderFiles)
+Lines::Lines(GLfloat* _vertices, GLsizeiptr _vertSize, GLuint* _indices, GLsizeiptr _indSize, ShaderFiles shaderFiles) : Shape()
 {
     std::cout << "Initialized" << std::endl;
-
-
 
     std::cout << _vertices[0] << std::endl;
 
     vertexNumber = _vertSize / sizeof(GLfloat) / 3;
     indicesNumber = _indSize / sizeof(GLuint);
 
-    vertices = std::make_unique<GLfloat[]>(vertexNumber);
-    for (int i = 0; i < vertexNumber; i++){
-        vertices.get()[i] = _vertices[i];
+    for (int i = 0; i < vertexNumber * 3; i++){
+        vertices.push_back(_vertices[i]);
     }
 
-    indices = std::make_unique<GLuint[]>(indicesNumber);
     for (int i = 0; i < indicesNumber; i++){
-        indices.get()[i] = _indices[i];
+        indices.push_back(_indices[i]);
     }
-
 
     shader = new Shader(shaderFiles);
-
 
     vao = new VAO();
 
     vao->Bind();
 
-    vbo = new VBO(vertices.get(), _vertSize);
-    ebo = new EBO(indices.get(), _indSize);
+    vbo = new VBO(vertices.data(), _vertSize);
+    ebo = new EBO(indices.data(), _indSize);
 
     vao->LinkVBO(*vbo, 0, 3, GL_FLOAT, 3 * sizeof(GLfloat), (void*)0);
     
@@ -179,7 +189,9 @@ Lines::Lines(GLfloat* _vertices, GLsizeiptr _vertSize, GLuint* _indices, GLsizei
 
     transformLocation = glGetUniformLocation(shader->ID, "transform");
     transform = glm::mat4(1.0f);
-    
+
+    type = ShapeTypes::SH_LINES;
+
 }
 
 void Lines::Draw()

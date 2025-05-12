@@ -231,7 +231,7 @@ int main(int, char**)
 
                 Lines lines(lineVertices, sizeof(lineVertices), lineIndices, sizeof(lineIndices), shaderFilesLine);
                 lines.setName("tre");
-                renderWidget.addShape(std::move(lines));
+                renderWidget.addShape(std::make_shared<Lines>(lines));
                 delete lineVertices;
                 delete lineIndices;
             }

@@ -81,7 +81,8 @@
         "variant": "cpp",
         "bitset": "cpp",
         "forward_list": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "ranges": "cpp"
     },
     "makefile.makefilePath": "Makefile/Makefile"
 }

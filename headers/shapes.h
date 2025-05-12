@@ -8,12 +8,22 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <memory>
+#include <vector>
 
 enum class ShapeTypes {
     SH_LINE,
     SH_LINES,
     SH_TRAINGLE,
     SH_TRIANGLES
+};
+
+/// @brief State of the shape
+enum class ShapeState {
+    STATIC           =       0x0,
+    CREATING,
+    MODIFYING,
+
+    CURRENT
 };
 
 #pragma region ShapeStructure
@@ -34,14 +44,25 @@ class Shape
 {
     public:
         Shape();
+        virtual ~Shape() = default;
 
         virtual void Draw() {}
         //virtual ~Shape() {}
         virtual void Delete() {}
         virtual void setName(std::string name) {}
         virtual std::string getName() {}
-        virtual GLfloat* getVertices() { return vertices.get(); }
-        virtual GLuint* getIndices() { return indices.get(); }
+        virtual std::vector<GLfloat> getVertices() { return vertices; }
+        virtual void addVertices(GLfloat* addVertices, int addVerticesNum);
+        virtual std::vector<GLuint> getIndices() { return indices; }
+        virtual void addIndices(GLuint* addIndices, int addIndicesNum);
+        virtual void setState(ShapeState shapeState) { state = shapeState; }
+        virtual ShapeState getState() { return state; }
+        virtual void setType(ShapeTypes shapeType) { type = shapeType; }
+        virtual ShapeTypes getType() { return type; }
+        virtual void setVBO(VBO* shapeVBO) { vbo = shapeVBO; }
+        virtual VBO* getVBO() { return vbo; }
+        virtual EBO* getEBO() { return ebo; }
+        virtual VAO* getVAO() { return vao; }
         // virtual void Rotate() = 0;
         // virtual void Translate(glm::vec3 delta) = 0;
 
@@ -55,13 +76,18 @@ class Shape
         GLuint transformLocation;
         glm::mat4 transform;
 
-        std::unique_ptr<GLfloat[]> vertices;
-        std::unique_ptr<GLuint[]> indices;
+        std::vector<GLfloat> vertices;
+        std::vector<GLuint> indices;
         
         GLuint vertexNumber;
         GLuint indicesNumber;
 
         std::string widgetName = "ciao";
+
+        ShapeState state;
+
+        ShapeTypes type;
+
 
 };
 
@@ -82,7 +108,7 @@ class Line : public Shape
 {
     public:
         Line(GLfloat* vertices, ShaderFiles shaderFiles);
-        //~Line() override {}
+        ~Line() {};
 
         void Draw() override;
         void Delete() override;
@@ -94,12 +120,12 @@ class Lines : public Shape
 {
     public:
         Lines(GLfloat* _vertices, GLsizeiptr _vertSize, GLuint* _indices, GLsizeiptr _indSize, ShaderFiles shaderFiles);
+        ~Lines() {};
 
         void Draw() override;
         void Delete() override;
         void setName(std::string name) override;
         std::string getName() override { return widgetName; }
-
 };
 
 #endif

@@ -1,8 +1,8 @@
 #include "widgets.h"
 
-ShapeState shapeState = ShapeState::EMPTY;
 Tools currentTool = Tools::LINE;
 Actions action = Actions::EMPTY;
+std::shared_ptr<Canva> currentCanva;
 
 #pragma region RenderWidget
 
@@ -11,17 +11,19 @@ RenderWidget::RenderWidget(std::string name, ImVec2 size)
     fbo = new FBO(size.x, size.y);
     widgetName = name;
     widgetSize = size;
-    canva = std::make_unique<Canva>(widgetSize);
+    canva = std::make_shared<Canva>(widgetSize);
+    currentCanva = canva;
 
-    ShapeState shapeState = ShapeState::EMPTY;
     Actions action = Actions::EMPTY;
 }
 
 void RenderWidget::registerEvents()
 {
-    if (ImGui::IsMouseClicked(0)){
 
-        std::cout << ImGui::GetMousePos().x << std::endl;
+    if (!canva->shapes.size());
+
+    //Mouse Click
+    if (ImGui::IsMouseClicked(0)){
 
         ImVec2 relativeMousePos = ImVec2(ImGui::GetMousePos().x - ImGui::GetWindowPos().x, ImGui::GetMousePos().y - ImGui::GetWindowPos().y);
 
@@ -29,49 +31,82 @@ void RenderWidget::registerEvents()
         if (relativeMousePos.x > 0 && relativeMousePos.x < ImGui::GetWindowWidth()){
             if (relativeMousePos.y > 0 && relativeMousePos.y < ImGui::GetWindowHeight()){
                 
-                //Detect wich tool is selected
+                //Detect which tool is selected
                 switch (currentTool)
                 {
                     //Check if the current tool is LINE
-                    case Tools::LINE:
+                    case (Tools::LINE): 
+                    {
+                        //If the current shape size = 0 then initialize the line
+                        if (canva->currentShapesIndices.size() == 0) {
+
+                            ImVec2 mpos = ImVec2(ImGui::GetMousePos().x - ImGui::GetWindowPos().x, ImGui::GetMousePos().y - ImGui::GetWindowPos().y);
+
+                            GLfloat* lineVertices = new GLfloat[3]{
+                                2 * mpos.x / ImGui::GetWindowWidth() - 1.0f, (-1) * 2 * mpos.y / ImGui::GetWindowHeight() + 1.0f,   0.0f
+                            };
+
+                            GLuint* lineIndices = new GLuint[1]{ 0 };
+
+                            ShaderGenerator shader("ciao");
+
+                            Lines* lines = new Lines(lineVertices, sizeof(lineVertices), lineIndices, sizeof(lineIndices), shader.createShader());
+                            //lines->setName("bob");
+                            action = Actions::EMPTY;
+                            std::cout << "Line pointer: " << &lines << std::endl;
+                            lines->setState(ShapeState::CREATING);
+                            this->addShape(std::make_shared<Lines>((Lines)*lines));
+                            std::cout << "Shape state: " << (int)lines->getState() << std::endl;
+
+                            delete[] lineVertices; 
+                            delete[] lineIndices;
+
+                            break;
+
+                        }
 
                         //Check in wich state is the current/selected shape
-                        switch (shapeState)
+                        switch (canva->shapes[0].get()->getState())
                         {
-                            case ShapeState::EMPTY:
-                            {
-
-
-
-                                ImVec2 mpos = ImVec2(ImGui::GetMousePos().x - ImGui::GetWindowPos().x, ImGui::GetMousePos().y - ImGui::GetWindowPos().y);
-
-                                GLfloat lineVertices[] = {
-                                    2 * mpos.x / ImGui::GetWindowWidth() - 1.0f, (-1) * 2 * mpos.y / ImGui::GetWindowHeight() + 1.0f,   0.0f,
-                                    0.0f,   0.0f,   0.0f,
-                                };
-
-                                GLuint lineIndices[] = {
-                                    0, 1
-                                };
-
-                                ShaderGenerator shader("ciao");
-
-                                Lines lines(lineVertices, sizeof(lineVertices), lineIndices, sizeof(lineIndices), shader.createShader());
-                                lines.setName("bob");
-                                action = Actions::EMPTY;
-                                std::cout << "Line pointer: " << &lines << std::endl;
-                                this->addShape(std::move(lines));
-                                std::cout << "Line pointer after: " << canva->shapes[0].get() << std::endl;
-                                shapeState = ShapeState::CREATING;
-                                
+                            case ShapeState::STATIC:
+                            {                 
                                 break;
                             }
 
+                            //Get current mouse position, create the new vertex and index, update VBO and EBO
                             case ShapeState::CREATING:
                             {
                                 ImVec2 mpos = ImVec2(ImGui::GetMousePos().x - ImGui::GetWindowPos().x, ImGui::GetMousePos().y - ImGui::GetWindowPos().y);
 
-                                
+                                GLfloat* newVertex = new GLfloat[3]{
+                                    (2 * mpos.x / ImGui::GetWindowWidth() - 1.0f),
+                                    (-1) * 2 * mpos.y / ImGui::GetWindowHeight() + 1.0f,
+                                    0.0f
+                                };
+
+                                GLuint* newIndex = new GLuint[1] { 
+                                    (canva->shapes[0].get()->getIndices().size())
+                                };
+
+                                int currentShapeIndex = canva->currentShapesIndices[0];
+
+                                canva->shapes[currentShapeIndex].get()->addVertices(newVertex, 3);
+                                canva->shapes[currentShapeIndex].get()->addIndices(newIndex, 1);
+
+                                glBindVertexArray(canva->shapes[0].get()->getVAO()->ID);
+
+                                glBindBuffer(GL_ARRAY_BUFFER, canva->shapes[0].get()->getVBO()->ID);
+                                glBufferData(GL_ARRAY_BUFFER, canva->shapes[0].get()->getVertices().size() * sizeof(GLfloat), canva->shapes[0].get()->getVertices().data(), GL_DYNAMIC_DRAW);
+
+                                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, canva->shapes[0].get()->getEBO()->ID);
+                                glBufferData(GL_ELEMENT_ARRAY_BUFFER, canva->shapes[0].get()->getIndices().size() * sizeof(GLuint), canva->shapes[0].get()->getIndices().data(), GL_DYNAMIC_DRAW);
+
+                                glBindVertexArray(0);
+
+                                delete[] newVertex;
+                                delete[] newIndex;
+
+                                break;
 
                             }
 
@@ -80,7 +115,7 @@ void RenderWidget::registerEvents()
                         }
 
                         break;
-                    
+                    }
                     default:
                         break;
                 }
@@ -88,21 +123,64 @@ void RenderWidget::registerEvents()
         }
     }   
 
-    switch (shapeState)
-    {
-        case ShapeState::CREATING:
+    for (int shapeIndex = 0; shapeIndex < canva->getShapesNum(); shapeIndex++){
+
+        switch (canva->getShapeType(shapeIndex))
         {
+            case ShapeTypes::SH_LINES:
+            {
+                
+                switch (canva->getShapeState(shapeIndex))
+                {
+                    case ShapeState::STATIC:
+                        break;
+                    
+                    case ShapeState::CREATING: 
+                    {
+                        ImVec2 mpos = ImVec2(ImGui::GetMousePos().x - ImGui::GetWindowPos().x, ImGui::GetMousePos().y - ImGui::GetWindowPos().y);
 
-            //std::cout << currentShapes[0].get()->getName() << std::endl;
+                        GLfloat* newVertex = new GLfloat[3]{
+                            (2 * mpos.x / ImGui::GetWindowWidth() - 1.0f),
+                            (-1) * 2 * mpos.y / ImGui::GetWindowHeight() + 1.0f,
+                            0.0f
+                        };
 
-            break;
+                        GLuint* newIndex = new GLuint[1] { 
+                            (canva->shapes[0].get()->getIndices().size())
+                        };
+
+                        int currentShapeIndex = canva->currentShapesIndices[0];
+
+                        canva->shapes[currentShapeIndex].get()->addVertices(newVertex, 3);
+                        canva->shapes[currentShapeIndex].get()->addIndices(newIndex, 1);
+
+                        glBindVertexArray(canva->shapes[0].get()->getVAO()->ID);
+
+                        glBindBuffer(GL_ARRAY_BUFFER, canva->shapes[0].get()->getVBO()->ID);
+                        glBufferData(GL_ARRAY_BUFFER, canva->shapes[0].get()->getVertices().size() * sizeof(GLfloat), canva->shapes[0].get()->getVertices().data(), GL_DYNAMIC_DRAW);
+
+                        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, canva->shapes[0].get()->getEBO()->ID);
+                        glBufferData(GL_ELEMENT_ARRAY_BUFFER, canva->shapes[0].get()->getIndices().size() * sizeof(GLuint), canva->shapes[0].get()->getIndices().data(), GL_DYNAMIC_DRAW);
+
+                        glBindVertexArray(0);
+
+                        delete[] newVertex;
+                        delete[] newIndex;
+
+                        break;
+                    }
+
+                    default:
+                        break;
+                }
+
+                break;
+            }
+            default:
+                break;
         }
-            
-        
-        default:
-            break;
-    }
 
+    }
 }
 
 void RenderWidget::execEvents()
@@ -134,44 +212,23 @@ void RenderWidget::Draw()
     if (canva->shapes.size() > 0)
     {
 
-
         for (int i = 0; i < canva->shapes.size(); i++){
-            //std::cout << "Ciao " << canva->shapes[i]->getVertices()[0] << std::endl;
             canva->shapes[i]->Draw();
-            std::cout << canva->shapes[i]->getName() << std::endl;
         }
-
-        // std::cout << "Shape type: " << typeid(canva->shapes[0]).name() << std::endl;
-        // std::cout << "Shape name: " << canva->shapes[0]->getName() << std::endl;
-        // for (const auto &shape : canva->shapes)
-        // {
-        //     //std::cout << "Shape name: " << shape->getName() << std::endl;
-            
-        //     //glBindBuffer(GL_ARRAY_BUFFER, shape->getVBO()->ID);
-        //     //glBufferData(GL_ARRAY_BUFFER, 6 * 4, shape->getVertices(), GL_STATIC_DRAW);
-        //     shape->Draw();
-        //     std::cout << "Ver: " << shape->getVertices()[0] << std::endl; 
-        // }
     }
 
+    registerEvents();
     fbo->Unbind();
     ImGui::Image((ImTextureID)fbo->getFrameTexture(), ImGui::GetWindowSize(), ImVec2(0, 1), ImVec2(1, 0));
     
-    registerEvents();
     execEvents();
     ImGui::EndChild();
     ImGui::End();
-
-
 }
 
 void RenderWidget::Delete()
 {
     fbo->Delete();
-    // for (int shapeIndex = 0; shapeIndex < (int)canva->shapes.size(); shapeIndex++)
-    // {
-    //     canva->shapes[0]->Delete();
-    // }
 }
 
 void RenderWidget::Resize(ImVec2 size)
@@ -198,6 +255,12 @@ void ToolWidget::Draw()
     ImGui::SetWindowSize(widgetSize);
 
     ImGui::Button("Line");
+
+    if (ImGui::Button("Clean Canva")) {
+        if (currentCanva) {
+            currentCanva->Clean();
+        }
+    }
 
     ImGui::End();
 }
